@@ -1,68 +1,41 @@
-buildscript {
-    ext.vertx_version = '3.5.0'
-    ext.jackson_module_kotlin_version = '2.9.0'
-    ext.slf4j_version= '1.7.25'
-    ext.logback_version = '1.2.3'
-}
-
 plugins {
+    id 'io.vertx.vertx-plugin' version "0.0.6"
     id "org.jetbrains.kotlin.jvm" version "1.2.0"
-    id 'application'
-    id 'java'
-    id 'com.github.johnrengelman.shadow' version '2.0.1'
 }
-
-sourceCompatibility = '1.8'
-version = '1.0.0'
-
-mainClassName = 'io.vertx.core.Launcher'
-def mainVerticleName = 'info.usmans.blog.vertx.NetClientVerticle'
 
 repositories {
     jcenter()
-    mavenCentral()
 }
 
 dependencies {
+    compile 'io.vertx:vertx-lang-kotlin'
+
     //kotlin dependencies
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre8"
-    compile "org.jetbrains.kotlin:kotlin-runtime"
-    compile "org.jetbrains.kotlin:kotlin-reflect"
-    //jackson module for kotlin
-    compile "com.fasterxml.jackson.module:jackson-module-kotlin:$jackson_module_kotlin_version"
 
     //slf4j/logback logging
-    compile "org.slf4j:slf4j-api:$slf4j_version"
-    compile "ch.qos.logback:logback-classic:$logback_version"
-
-    //vertx dependencies
-    compile "io.vertx:vertx-core:$vertx_version"
+    compile "ch.qos.logback:logback-classic:1.2.3"
 
     //test dependencies
     testCompile "org.jetbrains.kotlin:kotlin-test"
     testCompile "org.jetbrains.kotlin:kotlin-test-junit"
 }
 
-compileKotlin {
-    kotlinOptions.jvmTarget = 1.8
+//by default Kotlin targets 1.6
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
 }
 
-compileTestKotlin {
-    kotlinOptions.jvmTarget = 1.8
+vertx {
+    mainVerticle = "info.usmans.blog.vertx.NetClientVerticle"
 }
 
-// Naming and packaging settings for the "shadow jar".
+//override generated jar name without version
 shadowJar {
     baseName = 'vertx-net-client'
-    classifier = 'shadow'
-    version=null
-
-    manifest {
-        attributes 'Main-Verticle': mainVerticleName
-    }
-    mergeServiceFiles {
-        include 'META-INF/services/io.vertx.core.spi.VerticleFactory'
-    }
+    version = null
 }
 
 task wrapper(type: Wrapper) {
