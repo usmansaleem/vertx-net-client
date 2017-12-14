@@ -2,6 +2,7 @@ package info.usmans.blog.vertx
 
 import io.vertx.core.AbstractVerticle
 import io.vertx.core.Vertx
+import io.vertx.core.net.NetClient
 import io.vertx.core.net.NetClientOptions
 import org.slf4j.LoggerFactory
 
@@ -32,40 +33,41 @@ class NetClientVerticle : AbstractVerticle() {
         }
         val client = vertx.createNetClient(options)
 
-        vertx.eventBus().consumer<String>("reconnect-event", {
-            logger.info("Connecting to $serverHost:$serverPort")
-
-            client.connect(serverPort, serverHost, { event ->
-                if (event.succeeded()) {
-                    logger.info("Connected")
-                    val socket = event.result()
-                    //send pass phrase ...
-                    socket.write(connectMessage)
-
-                    socket.handler({ data ->
-                        logger.info("Data received: ${data}")
-                        //TODO: Do the work here ...
-                    })
-
-                    socket.closeHandler({
-                        logger.info("Socket closed")
-                        fireReconnectEvent()
-                    })
-                } else {
-                    logger.info("Connection attempt failed. ${event.cause().message}")
-                    fireReconnectEvent()
-                }
-            })
-        })
-
-        //fire first reconnect event
-        fireReconnectEvent()
+        fireReconnectTimer(client)
     }
 
-    //wait for 5 seconds before attempting fire event
-    private fun fireReconnectEvent() {
+    //wait for 5 seconds before attempting to connect
+    private fun fireReconnectTimer(client: NetClient) {
         vertx.setTimer(5000, {
-            vertx.eventBus().publish("reconnect-event", "connect")
+            reconnect(client)
         })
     }
+
+    private fun reconnect(client: NetClient) {
+        logger.info("Connecting to $serverHost:$serverPort")
+
+        client.connect(serverPort, serverHost, { event ->
+            if (event.succeeded()) {
+                logger.info("Connected")
+                val socket = event.result()
+                //send pass phrase ...
+                socket.write(connectMessage)
+
+                socket.handler({ data ->
+                    logger.info("Data received: ${data}")
+                    //TODO: Do the work here ...
+                })
+
+                socket.closeHandler({
+                    logger.info("Socket closed")
+                    fireReconnectTimer(client)
+                })
+            } else {
+                logger.info("Connection attempt failed. ${event.cause().message}")
+                fireReconnectTimer(client)
+            }
+        })
+    }
+
+
 }
