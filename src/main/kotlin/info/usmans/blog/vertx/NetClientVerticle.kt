@@ -7,12 +7,11 @@ import org.slf4j.LoggerFactory
 
 fun main(args: Array<String>) {
     //hack for windows - netty cause dns resolver error
-    if(System.getProperty("os.name").toLowerCase().indexOf("win") >= 0) {
+    if (System.getProperty("os.name").toLowerCase().indexOf("win") >= 0) {
         System.setProperty("vertx.disableDnsResolver", "true")
     }
 
     //quick way to run the verticle in IDE.
-
     Vertx.vertx().deployVerticle(NetClientVerticle())
     println("Running NetClientVerticle!")
 }
@@ -28,7 +27,7 @@ class NetClientVerticle : AbstractVerticle() {
 
     override fun start() {
         val options = NetClientOptions().apply {
-            isSsl = true
+            isSsl = true //required if server is using SSL Socket as well.
             connectTimeout = 10000
         }
         val client = vertx.createNetClient(options)
@@ -50,22 +49,17 @@ class NetClientVerticle : AbstractVerticle() {
 
                     socket.closeHandler({
                         logger.info("Socket closed")
-
-
                         fireReconnectEvent()
                     })
                 } else {
                     logger.info("Connection attempt failed. ${event.cause().message}")
-                    //wait for 5 seconds before attempting fire event
                     fireReconnectEvent()
                 }
             })
         })
 
         //fire first reconnect event
-       fireReconnectEvent()
-
-
+        fireReconnectEvent()
     }
 
     //wait for 5 seconds before attempting fire event
@@ -74,5 +68,4 @@ class NetClientVerticle : AbstractVerticle() {
             vertx.eventBus().publish("reconnect-event", "connect")
         })
     }
-
 }
