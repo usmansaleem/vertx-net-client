@@ -5,6 +5,10 @@ plugins {
 
 repositories {
     jcenter()
+    mavenCentral()
+    maven {
+        url "https://oss.sonatype.org/content/repositories/snapshots/"
+    }
 }
 
 dependencies {
@@ -15,6 +19,9 @@ dependencies {
 
     //slf4j/logback logging
     compile "ch.qos.logback:logback-classic:1.2.3"
+
+    //pi4j
+    compile "com.pi4j:pi4j-core:1.2-SNAPSHOT"
 
     //test dependencies
     testCompile "org.jetbrains.kotlin:kotlin-test"

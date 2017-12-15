@@ -1,5 +1,6 @@
 package info.usmans.blog.vertx
 
+import com.pi4j.io.gpio.*
 import io.vertx.core.AbstractVerticle
 import io.vertx.core.Vertx
 import io.vertx.core.net.NetClient
@@ -26,7 +27,29 @@ class NetClientVerticle : AbstractVerticle() {
     private val serverPort = System.getProperty("serverPort", "8888").toIntOrNull() ?: 8888
     private val connectMessage = System.getProperty("connectMessage", "hello")
 
+    private val isPi = "arm".equals( System.getProperty("os.arch"), true)
+    private val gpio: GpioController?
+    private val pin0Out: GpioPinDigitalOutput?
+
+    init {
+        if(isPi) {
+            gpio = GpioFactory.getInstance()
+            pin0Out = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_00, // PIN NUMBER
+                    "GPIO_OO", // PIN FRIENDLY NAME (optional)
+                    PinState.LOW)      // PIN STARTUP STATE (optional)
+            //pin shutdown behavior ...
+            pin0Out.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF)
+        } else {
+            gpio = null
+            pin0Out = null
+        }
+    }
+
     override fun start() {
+        logger.info("Pi: ${isPi}" )
+        logger.info("Server Host/Port: ${serverHost}:${serverPort}")
+        logger.info("Password: ${connectMessage}")
+
         val options = NetClientOptions().apply {
             isSsl = true //required if server is using SSL Socket as well.
             connectTimeout = 10000
@@ -55,7 +78,8 @@ class NetClientVerticle : AbstractVerticle() {
 
                 socket.handler({ data ->
                     logger.info("Data received: ${data}")
-                    //TODO: Do the work here ...
+
+                    sendSignalToPin0()
                 })
 
                 socket.closeHandler({
@@ -69,5 +93,8 @@ class NetClientVerticle : AbstractVerticle() {
         })
     }
 
+    private fun sendSignalToPin0() {
+        pin0Out?.pulse(5000)
+    }
 
 }
